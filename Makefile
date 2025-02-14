@@ -44,8 +44,8 @@ install: all
 	cp $(TARGET_STATIC) $(DESTDIR)$(LIBDIR)/
 
 uninstall:
-	@echo "Removing installed headers from $(INCDIR)"
-	rm -rf $(DESTDIR)$(INCDIR)
+	# @echo "Removing installed headers from $(INCDIR)"
+	# rm -rf $(DESTDIR)$(INCDIR)
 	@echo "Removing installed libraries from $(LIBDIR)"
 	rm -f $(DESTDIR)$(LIBDIR)/$(TARGET_SHARED) $(DESTDIR)$(LIBDIR)/$(TARGET_STATIC)
 

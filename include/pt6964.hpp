@@ -104,6 +104,7 @@ private:
     void output(int pin, bool high);
     void sendBit(bool bit);
     void sendByte(uint8_t data);
+    void setAddress(uint8_t addr);
     void sendAddress(uint8_t addr);
     void sendRawCommand(uint8_t command);
     void writeRaw(uint8_t data[7]);
@@ -111,7 +112,7 @@ private:
     static std::vector<unsigned int> alphabetize(const std::string &s);
     static std::array<uint8_t, 14> alphabetToBits(const std::vector<unsigned int> &alphabetized);
     static std::vector<unsigned int> parseMessage(const std::vector<MessagePart>& msg_parts);
-    void sendBrightness(bool on, uint8_t brightness);
+    void setBrightness(bool on, uint8_t brightness);
 public:
     BaseInterface& interface;
     /**

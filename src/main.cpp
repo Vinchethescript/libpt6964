@@ -30,11 +30,18 @@ void PT6964::sendCommand(Command command, uint8_t data) {
     sendRawCommand(cmd | data);
 }
 
-void PT6964::sendAddress(uint8_t addr) {
+void PT6964::setAddress(uint8_t addr) {
     if (addr > 13) {
         throw std::invalid_argument("Address must be between 0 and 13.");
     }
     sendCommand(Command::ADDR, addr);
+}
+
+void PT6964::sendAddress(uint8_t addr) {
+    if (addr > 13) {
+        throw std::invalid_argument("Address must be between 0 and 13.");
+    }
+    sendByte(static_cast<uint8_t>(Command::ADDR) | addr);
 }
 
 void PT6964::writeRaw(uint8_t data[7]) {
@@ -48,7 +55,7 @@ void PT6964::writeRaw(uint8_t data[7]) {
     }
 }
 
-void PT6964::sendBrightness(bool on, uint8_t brightness) {
+void PT6964::setBrightness(bool on, uint8_t brightness) {
     if (brightness > 7) {
         throw std::invalid_argument("Brightness must be between 0 and 7");
     }
@@ -108,7 +115,7 @@ void PT6964::writeMessage(const std::vector<MessagePart>& msg,
     
     // TODO: detect which addresses need updating and only update those
     interface.setCS(false);
-    sendAddress(0);
+    sendByte(static_cast<uint8_t>(Command::ADDR));
 
     for (uint8_t row : dt) {
 
@@ -131,7 +138,7 @@ void PT6964::writeMessage(const std::vector<MessagePart>& msg,
         // TODO: generalize this so it works with other displays
         sendRawCommand(getAction(true, true, testMode));
         sendRawCommand(getMode(this->mode));
-        sendBrightness(disp, bright);
+        setBrightness(disp, bright);
 
         lastBrightness = bright;
         lastDisp = disp;
