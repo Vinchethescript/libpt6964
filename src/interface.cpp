@@ -46,6 +46,7 @@ void PigpioInterface::setData(bool high) {
 
 bool PigpioInterface::inputData() {
     gpioSetMode(dataPin, PI_INPUT);
+    this->delay(CLK_USEC);
     bool val = gpioRead(dataPin) == PI_HIGH;
     gpioSetMode(dataPin, PI_OUTPUT);
     return val;
