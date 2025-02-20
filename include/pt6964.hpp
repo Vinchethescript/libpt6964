@@ -178,7 +178,7 @@ public:
     PT6964(BaseInterface& iface, DisplayMode mode = DisplayMode::D8S10);
     ~PT6964();
 
-    void writeMessage(const std::vector<MessagePart>& msg,
+    bool writeMessage(const std::vector<MessagePart>& msg,
         std::optional<bool> display_on = std::nullopt,
         std::optional<int> brightness = std::nullopt,
         bool force = false);

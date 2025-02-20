@@ -78,7 +78,7 @@ std::vector<unsigned int> PT6964::parseMessage(const std::vector<MessagePart>& m
     return ret;
 }
 
-void PT6964::writeMessage(const std::vector<MessagePart>& msg,
+bool PT6964::writeMessage(const std::vector<MessagePart>& msg,
                     std::optional<bool> display_on,
                     std::optional<int> brightness,
                     bool force)
@@ -98,7 +98,7 @@ void PT6964::writeMessage(const std::vector<MessagePart>& msg,
         throw std::invalid_argument("Brightness must be between 0 and 7");
 
     if (!isSetUp)
-        return;
+        return false;
 
     std::vector<unsigned int> parsed = parseMessage(msg);
     std::array<uint8_t, 14> dt = alphabetToBits(parsed);
@@ -109,7 +109,7 @@ void PT6964::writeMessage(const std::vector<MessagePart>& msg,
         (lastBrightness.has_value() && lastBrightness.value() == bright) &&
         (lastDisp.has_value() && lastDisp.value() == disp))
     {
-        return;
+        return false;
     }
     
     // TODO: detect which addresses need updating and only update those
@@ -144,6 +144,7 @@ void PT6964::writeMessage(const std::vector<MessagePart>& msg,
     }
 
     first = false;
+    return true;
 }
 
 uint16_t PT6964::readKey() {
