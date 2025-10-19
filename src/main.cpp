@@ -16,7 +16,6 @@ PT6964::PT6964(BaseInterface& iface, DisplayMode mode): interface(iface) {
 
 PT6964::~PT6964() {
     isSetUp = false;
-    delete &interface;
     exists = false;
 }
 

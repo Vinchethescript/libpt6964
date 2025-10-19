@@ -1,6 +1,5 @@
 #include <stdexcept>
 #include <algorithm>
-#include <pigpio.h>
 #include "pt6964.hpp"
 
 uint8_t getAction(bool write, bool auto_inc, bool test) {
