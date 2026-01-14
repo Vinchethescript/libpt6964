@@ -3,10 +3,10 @@ AR       = ar
 
 TARGET_RPI := $(shell grep -q "Raspberry Pi" /proc/cpuinfo && echo YES || echo NO)
 
-CXXFLAGS = -Wall -Wextra -Iinclude -fPIC -std=c++17
+CXXFLAGS = -Wall -Wextra -Iinclude -fPIC -std=c++17 -O2
 
 ifeq ($(TARGET_RPI),YES)
-    CXXFLAGS += -DTARGET_RPI
+    CXXFLAGS += -DTARGET_RPI -march=native
 endif
 
 SRC = src/interface.cpp src/main.cpp src/utils.cpp
@@ -44,8 +44,8 @@ install: all
 	cp $(TARGET_STATIC) $(DESTDIR)$(LIBDIR)/
 
 uninstall:
-	# @echo "Removing installed headers from $(INCDIR)"
-	# rm -rf $(DESTDIR)$(INCDIR)
+	@echo "Removing installed headers from $(INCDIR)"
+	rm -f $(DESTDIR)$(INCDIR)/pt6964.hpp
 	@echo "Removing installed libraries from $(LIBDIR)"
 	rm -f $(DESTDIR)$(LIBDIR)/$(TARGET_SHARED) $(DESTDIR)$(LIBDIR)/$(TARGET_STATIC)
 

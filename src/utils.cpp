@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <algorithm>
+#include <cctype>
 #include "pt6964.hpp"
 
 uint8_t getAction(bool write, bool auto_inc, bool test) {
@@ -15,6 +16,8 @@ uint8_t getMode(DisplayMode mode) {
 }
 
 bool PT6964::isColonValid(const std::string &str) {
+    // this checker only works for my 5-character-display use case.
+    // TODO: make it more general
     int colonCount = std::count(str.begin(), str.end(), ':');
     if (colonCount > 2)
         return false;
@@ -69,7 +72,7 @@ std::vector<unsigned int> PT6964::alphabetize(const std::string &s) {
 
     std::vector<unsigned int> ret;
     for (size_t i = 0; i < s.size(); ++i) {
-        char c = s[i];
+        unsigned char c = s[i];
         if (ALPHABET.find(c) != ALPHABET.end()) {
             ret.push_back(ALPHABET.at(c));
         } else if (ALPHABET.find(std::toupper(c)) != ALPHABET.end()) {
@@ -123,6 +126,10 @@ std::array<uint8_t, 14> PT6964::alphabetToBits(const std::vector<unsigned int> &
             }
         }
         ++actual;
+        if (actual > 7)
+            // NOTE: only fits my use case for now
+            // TODO: generalize
+            throw std::invalid_argument("Too many characters to fit in display");
     }
     std::array<uint8_t, 14> full;
     for (int i = 0; i < 14; i += 2) {
@@ -136,8 +143,9 @@ std::array<uint8_t, 14> PT6964::alphabetToBits(const std::vector<unsigned int> &
 void PT6964::sendBit(bool bit) {
     interface.setData(bit);
     interface.setCLK(true);
-    interface.delay(CLK_USEC);
+    interface.delay(CLK_DELAY_NS);
     interface.setCLK(false);
+    interface.delay(CLK_DELAY_NS);
 }
 
 void PT6964::sendByte(uint8_t data) {

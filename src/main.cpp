@@ -1,24 +1,14 @@
-#include <iostream>
+#include <mutex>
 #include "pt6964.hpp"
 #include <stdexcept>
 
-bool PT6964::exists = false;
+std::mutex pt6964Mutex;
 
-PT6964::PT6964(BaseInterface& iface, DisplayMode mode): interface(iface) {
-    if (exists) {
-        throw std::runtime_error("PT6964 instance already exists.");
-    }
-    exists = true;
-    interface = iface;
-    this->mode = mode;
-    isSetUp = true;
+PT6964::PT6964(BaseInterface& iface, DisplayMode mode): interface(iface), mode(mode) {
+    interface.setCS(true);
+    interface.setCLK(false);
+    interface.setData(false);
 }
-
-PT6964::~PT6964() {
-    isSetUp = false;
-    exists = false;
-}
-
 
 void PT6964::sendCommand(Command command, uint8_t data) {
     uint8_t cmd = static_cast<uint8_t>(command);
@@ -42,17 +32,6 @@ void PT6964::sendAddress(uint8_t addr) {
     sendByte(static_cast<uint8_t>(Command::ADDR) | addr);
 }
 
-void PT6964::writeRaw(uint8_t data[7]) {
-    for (int i = 0; i < 7; i++) {
-        for (int i = 7; i >= 0; i--) {
-            sendBit(data[i] & (1 << i));
-        }
-        for (int i = 0; i < 7; i++) {
-            sendBit(0);
-        }
-    }
-}
-
 void PT6964::setBrightness(bool on, uint8_t brightness) {
     if (brightness > 7) {
         throw std::invalid_argument("Brightness must be between 0 and 7");
@@ -65,8 +44,9 @@ std::vector<unsigned int> PT6964::parseMessage(const std::vector<MessagePart>& m
     for (const auto &part : msg_parts) {
         if (std::holds_alternative<int>(part)) {
             int val = std::get<int>(part);
-            if (val > 128) continue;
-            
+            if (val > 127) val = 127;
+            else if (val < 0) val = 0;
+
             ret.push_back(static_cast<unsigned int>(val));
         }
         else if (std::holds_alternative<std::string>(part)) {
@@ -85,6 +65,7 @@ bool PT6964::writeMessage(const std::vector<MessagePart>& msg,
     // If we haven't written anything yet, we're still forcing
     force = force || first;
 
+    std::shared_lock<std::shared_mutex> lock(mtx);
     bool disp = display_on.has_value()
         ? display_on.value()
         : (lastDisp.has_value() ? lastDisp.value() : true);
@@ -95,9 +76,6 @@ bool PT6964::writeMessage(const std::vector<MessagePart>& msg,
 
     if (bright < 0 || bright > 7)
         throw std::invalid_argument("Brightness must be between 0 and 7");
-
-    if (!isSetUp)
-        return false;
 
     std::vector<unsigned int> parsed = parseMessage(msg);
     std::array<uint8_t, 14> dt = alphabetToBits(parsed);
@@ -110,37 +88,63 @@ bool PT6964::writeMessage(const std::vector<MessagePart>& msg,
     {
         return false;
     }
-    
-    // TODO: detect which addresses need updating and only update those
-    interface.setCS(false);
-    sendByte(static_cast<uint8_t>(Command::ADDR));
 
-    for (uint8_t row : dt) {
-
-        for (int bit = 7; bit >= 0; --bit) {
-            sendBit(row & (1 << bit));
-        }
-    }
-    interface.setData(false);
-    interface.setCS(true);
-    interface.setCLK(false);
-
-    lastMsg = dt;
-    lastMsgSet = true;
+    bool mtxUnlocked = false;
 
     if (force ||
         !(lastBrightness.has_value() && lastBrightness.value() == bright) ||
-        !(lastDisp.has_value() && lastDisp.value() == disp))
-    {
-        // Write initialization commands.
-        // TODO: generalize this so it works with other displays
-        sendRawCommand(getAction(true, true, testMode));
-        sendRawCommand(getMode(this->mode));
-        setBrightness(disp, bright);
+        !(lastDisp.has_value() && lastDisp.value() == disp)
+        || rwMode != 1
+    ) {
+        lock.unlock();
+        mtxUnlocked = true;
+        {
+            std::lock_guard<std::mutex> lck(pt6964Mutex);
 
+            // Write initialization commands.
+            // TODO: generalize this so it works with other displays
+            sendRawCommand(getAction(true, true, testMode));
+            sendRawCommand(getMode(this->mode));
+            setBrightness(disp, bright);
+        }
+
+        std::lock_guard<std::shared_mutex> uniqueLock(mtx);
         lastBrightness = bright;
         lastDisp = disp;
+        rwMode = 1;
     }
+
+
+    if (!mtxUnlocked)
+        lock.unlock();
+
+
+    {
+        std::lock_guard<std::mutex> lck(pt6964Mutex);
+
+        // TODO: detect which addresses need updating and only update those
+        interface.setCS(false);
+        sendByte(static_cast<uint8_t>(Command::ADDR));
+
+        /**
+         * NOTE: though the commands are sent LSB first, the
+         * actual display data is sent MSB first per byte.
+         * at least, it seems like the IC works that way.
+         */
+        for (uint8_t row : dt) {
+
+            for (int bit = 7; bit >= 0; --bit) {
+                sendBit(row & (1 << bit));
+            }
+        }
+        interface.setData(false);
+        interface.setCS(true);
+        interface.setCLK(false);
+    }
+
+    std::lock_guard<std::shared_mutex> uniqueLock(mtx);
+    lastMsg = dt;
+    lastMsgSet = true;
 
     first = false;
     return true;
@@ -148,14 +152,24 @@ bool PT6964::writeMessage(const std::vector<MessagePart>& msg,
 
 uint16_t PT6964::readKey() {
     uint16_t data = 0;
+    {
+        std::lock_guard<std::shared_mutex> lock(mtx);
+        rwMode = 2;
+    }
+
+    std::lock_guard<std::mutex> lock(pt6964Mutex);
     interface.setCS(false);
 
     sendByte(getAction(false, true, testMode));
 
+    // as per datasheet, wait at least 1us before reading
+    interface.delay(1000);
+
     for (int i = 0; i < 16; ++i) {
         interface.setCLK(true);
-        interface.delay(CLK_USEC); // wait for the chip to update the DATA line
+        interface.delay(CLK_DELAY_NS); // wait for the chip to update the DATA line
 
+        // we assume that the interface handles pin mode switching when needed
         if (interface.inputData()) {
             data |= (1 << i);
         }

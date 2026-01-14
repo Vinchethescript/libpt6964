@@ -1,21 +1,21 @@
 #ifndef PT6964_HPP
 #define PT6964_HPP
 
-#include <map>
+#include <unordered_map>
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <array>
 #include <variant>
 #include <optional>
+#include <shared_mutex>
 
-// Delay in microseconds between each CLK high and low.
-// This is because C++ seems to be a bit faster than
-// the PT6964 can handle, making it miss some bits.
-// This delay might be subject to change, because it *may*
-// still be too fast for the chip to handle.
-// TODO: put this as a parameter in the constructor.
-#define CLK_USEC 1
+/**
+ * Delay in nanoseconds between each CLK high and low.
+ * This is a little more than the minimum the chip
+ * can handle according to the datasheet (400ns).
+ */
+static inline constexpr int CLK_DELAY_NS = 500;
 
 enum class DisplayMode: uint8_t {
     D4S13 = 0b00,
@@ -26,7 +26,7 @@ enum class DisplayMode: uint8_t {
 
 enum class Command: uint8_t {
     ON   = 0b10001000, // Display on: last 3 bits are brightness
-    OFF  = 0b10000000, // Display off
+    OFF  = 0b10000000, // Display off. Brightness bits will be stored and used when turned on again.
 
     /**
      * Display mode settings. According to datasheet, last two bits are:
@@ -40,7 +40,7 @@ enum class Command: uint8_t {
 
     /**
      * Set memory address to start writing data from.
-     * The last 4 bits are the address, which can be from 0 to 1101 (13).
+     * The last 4 bits are the address, which can range from 0 to 1101 (13).
      */
     ADDR = 0b11000000,
 
@@ -71,20 +71,23 @@ public:
     virtual void setCLK(bool high) = 0;
     virtual void setData(bool high) = 0;
     virtual bool inputData() = 0;
-    virtual void delay(int usec);
+    virtual void delay(int nsec);
 };
 
 class PigpioInterface: public BaseInterface {
     bool initialize;
+    uint8_t dataPinMode = 0;
 public:
     uint8_t csPin, clkPin, dataPin;
+    // NOTE: initialize indicates whether to call gpioInitialise/gpioTerminate
+    // pass false if pigpio is already initialized elsewhere or you need it with more control/pins
     PigpioInterface(uint8_t cs, uint8_t clk, uint8_t data, bool initialize = true);
     virtual ~PigpioInterface();
     virtual void setCS(bool high) override;
     virtual void setCLK(bool high) override;
     virtual void setData(bool high) override;
     virtual bool inputData() override;
-    virtual void delay(int usec) override;
+    virtual void delay(int nsec) override;
 };
 
 class PT6964 {
@@ -95,24 +98,21 @@ private:
     bool lastMsgSet = false;
     std::optional<int> lastBrightness;
     std::optional<bool> lastDisp;
-    bool isSetUp = false;
-    
-    bool first;
-    int csPin, clkPin, dataPin;
+    std::shared_mutex mtx;
+ 
+    bool first = true;
     DisplayMode mode;
-    static bool exists;
-    void output(int pin, bool high);
     void sendBit(bool bit);
     void sendByte(uint8_t data);
     void setAddress(uint8_t addr);
     void sendAddress(uint8_t addr);
     void sendRawCommand(uint8_t command);
-    void writeRaw(uint8_t data[7]);
     static bool isColonValid(const std::string &str);
     static std::vector<unsigned int> alphabetize(const std::string &s);
     static std::array<uint8_t, 14> alphabetToBits(const std::vector<unsigned int> &alphabetized);
     static std::vector<unsigned int> parseMessage(const std::vector<MessagePart>& msg_parts);
     void setBrightness(bool on, uint8_t brightness);
+    uint8_t rwMode = 0;
 public:
     BaseInterface& interface;
     /**
@@ -124,7 +124,7 @@ public:
        6 2
        |3|
      */
-    static inline const std::map<char, uint8_t> ALPHABET = {
+    static inline const std::unordered_map<char, uint8_t> ALPHABET = {
         {'0', 0b1111011},
         {'1', 0b0110000},
         {'2', 0b1101101},
@@ -166,7 +166,7 @@ public:
         {' ', 0b0000000}
     };
 
-    static inline const std::map<char, uint8_t> EXTRAS = {
+    static inline const std::unordered_map<char, uint8_t> EXTRAS = {
         {'c', 0b1000110},
         {'n', 0b1100010},
         {'o', 0b1100110},
@@ -176,7 +176,6 @@ public:
     };
     bool testMode = false;
     PT6964(BaseInterface& iface, DisplayMode mode = DisplayMode::D8S10);
-    ~PT6964();
 
     bool writeMessage(const std::vector<MessagePart>& msg,
         std::optional<bool> display_on = std::nullopt,
