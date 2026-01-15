@@ -16,6 +16,7 @@
  * can handle according to the datasheet (400ns).
  */
 static inline constexpr int CLK_DELAY_NS = 500;
+static inline constexpr size_t MEMORY_SIZE = 14; // bytes
 
 enum class DisplayMode: uint8_t {
     D4S13 = 0b00,
@@ -57,7 +58,7 @@ enum class Command: uint8_t {
     ACTION = 0b01000000,
 };
 
-using MessagePart = std::variant<int, std::string>;
+using MemoryType = std::array<uint8_t, MEMORY_SIZE>;
 
 uint8_t getAction(bool write, bool auto_inc, bool test);
 uint8_t getMode(DisplayMode mode);
@@ -92,9 +93,7 @@ public:
 
 class PT6964 {
 private:
-    static inline constexpr unsigned int COLON_LEFT  = 0x100;
-    static inline constexpr unsigned int COLON_RIGHT = 0x101;
-    std::array<uint8_t, 14> lastMsg = {0};
+    MemoryType lastAddr = {0};
     bool lastMsgSet = false;
     std::optional<int> lastBrightness;
     std::optional<bool> lastDisp;
@@ -104,80 +103,16 @@ private:
     DisplayMode mode;
     void sendBit(bool bit);
     void sendByte(uint8_t data);
-    void setAddress(uint8_t addr);
     void sendAddress(uint8_t addr);
     void sendRawCommand(uint8_t command);
-    static bool isColonValid(const std::string &str);
-    static std::vector<unsigned int> alphabetize(const std::string &s);
-    static std::array<uint8_t, 14> alphabetToBits(const std::vector<unsigned int> &alphabetized);
-    static std::vector<unsigned int> parseMessage(const std::vector<MessagePart>& msg_parts);
-    void setBrightness(bool on, uint8_t brightness);
     uint8_t rwMode = 0;
 public:
     BaseInterface& interface;
-    /**
-     * 7-segment display alphabet.
-       One bit for each segment in the following order:
-       |0|
-       5 1
-       |4|
-       6 2
-       |3|
-     */
-    static inline const std::unordered_map<char, uint8_t> ALPHABET = {
-        {'0', 0b1111011},
-        {'1', 0b0110000},
-        {'2', 0b1101101},
-        {'3', 0b1111100},
-        {'4', 0b0110110},
-        {'5', 0b1011110},
-        {'6', 0b1011111},
-        {'7', 0b1110000},
-        {'8', 0b1111111},
-        {'9', 0b1111110},
-        {'A', 0b1110111},
-        {'b', 0b0011111},
-        {'C', 0b1001011},
-        {'c', 0b0001101},
-        {'d', 0b0111101},
-        {'E', 0b1001111},
-        {'F', 0b1000111},
-        {'G', 0b1011111},
-        {'H', 0b0110111},
-        {'h', 0b0010111},
-        {'I', 0b0110000},
-        {'J', 0b0111001},
-        {'L', 0b0001011},
-        {'n', 0b0010101},
-        {'O', 0b1111011},
-        {'o', 0b0011101},
-        {'P', 0b1100111},
-        {'r', 0b0000101},
-        {'S', 0b1011110},
-        {'t', 0b0001111},
-        {'U', 0b0111011},
-        {'u', 0b0011001},
-        {'y', 0b0111110},
-        {'Z', 0b1101101},
-        {'(', 0b1001011},
-        {')', 0b1111000},
-        {'-', 0b0000100},
-        {'_', 0b0001000},
-        {' ', 0b0000000}
-    };
-
-    static inline const std::unordered_map<char, uint8_t> EXTRAS = {
-        {'c', 0b1000110},
-        {'n', 0b1100010},
-        {'o', 0b1100110},
-        {'r', 0b1000010},
-        {'u', 0b0100110},
-        {'-', 0b1000000},
-    };
     bool testMode = false;
     PT6964(BaseInterface& iface, DisplayMode mode = DisplayMode::D8S10);
+    void setBrightness(bool on, uint8_t brightness, bool force = false);
 
-    bool writeMessage(const std::vector<MessagePart>& msg,
+    bool writeMessage(const MemoryType msg,
         std::optional<bool> display_on = std::nullopt,
         std::optional<int> brightness = std::nullopt,
         bool force = false);
