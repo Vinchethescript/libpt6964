@@ -2,7 +2,11 @@
 #include "pt6964.hpp"
 #include <stdexcept>
 
-std::mutex pt6964Mutex;
+namespace {
+    std::mutex pt6964Mutex;
+}
+
+namespace pt6964 {
 
 PT6964::PT6964(BaseInterface& iface, DisplayMode mode): interface(iface), mode(mode) {
     interface.setCS(true);
@@ -185,3 +189,5 @@ uint16_t PT6964::readKey() {
     interface.setCS(true);
     return data;
 }
+
+} // namespace pt6964

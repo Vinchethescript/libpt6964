@@ -10,6 +10,8 @@
 #include <optional>
 #include <shared_mutex>
 
+namespace pt6964 {
+
 /**
  * Delay in nanoseconds between each CLK high and low.
  * This is a little more than the minimum the chip
@@ -27,10 +29,10 @@ enum class DisplayMode: uint8_t {
 
 enum class Command: uint8_t {
     ON   = 0b10001000, // Display on: last 3 bits are brightness
-    OFF  = 0b10000000, // Display off. Brightness bits will be stored and used when turned on again.
+    OFF  = 0b10000000, // Display off. Brightness bits will be ignored.
 
     /**
-     * Display mode settings. According to datasheet, last two bits are:
+     * Display mode settings. According to the IC datasheet, the last two bits are:
      * 00: 4 digits, 13 segments;
      * 01: 5 digits, 12 segments;
      * 10: 6 digits, 11 segments;
@@ -41,7 +43,8 @@ enum class Command: uint8_t {
 
     /**
      * Set memory address to start writing data from.
-     * The last 4 bits are the address, which can range from 0 to 1101 (13).
+     * The last 4 bits are the address, which can range from 0 to 1101 (13),
+     * giving a total of 14 bytes of memory.
      */
     ADDR = 0b11000000,
 
@@ -52,7 +55,7 @@ enum class Command: uint8_t {
      *       |||
      *       ||+-- 0: Write data; 1: Read key data
      *       |+--- 0: Auto-increment RAM address; 1: Keep a fixed address
-     *       +---- 0: Normal operation mode; 1: Test mode
+     *       +---- 0: Normal operation mode; 1: Test mode (not sure what this does)
      * See also the getAction function.
      */
     ACTION = 0b01000000,
@@ -121,5 +124,7 @@ public:
     uint16_t readKey();
     
 };
+
+} // namespace pt6964
 
 #endif // PT6964_HPP

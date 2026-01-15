@@ -3,6 +3,8 @@
 #include <cctype>
 #include "pt6964.hpp"
 
+namespace pt6964 {
+
 uint8_t getAction(bool write, bool auto_inc, bool test) {
     unsigned int action = 0;
     if (!write) action |= 0b00000010;
@@ -34,3 +36,5 @@ void PT6964::sendRawCommand(uint8_t command) {
     sendByte(command);
     interface.setCS(true);
 }
+
+} // namespace pt6964

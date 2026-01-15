@@ -4,15 +4,19 @@
 #include <chrono>
 #include <cerrno>
 
+namespace pt6964 {
+
 BaseInterface::BaseInterface() {}
 
-void fallbackBusySleep(int nsec) {
-    // busy wait for very short delays
-    auto start = std::chrono::steady_clock::now();
-    while (true) {
-        auto now = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::nanoseconds>(now - start).count() >= nsec)
-            break;
+namespace {
+    void fallbackBusySleep(int nsec) {
+        // busy wait for very short delays
+        auto start = std::chrono::steady_clock::now();
+        while (true) {
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::nanoseconds>(now - start).count() >= nsec)
+                break;
+        }
     }
 }
 
@@ -30,19 +34,24 @@ void BaseInterface::delay(int nsec) {
 }
 
 #ifdef TARGET_RPI
+} // namespace pt6964
 #include <pigpio.h>
 #include <mutex>
 #include <algorithm>
 
-/**
- * it is okay to use different CS pins
- * while keeping CLK and DATA the same,
- * as long as only one interface is active at a time.
- */
+namespace pt6964 {
 
-std::mutex csMutex;
-std::vector<uint8_t> csPins;
-bool beenInitializedInternally = false;
+namespace {
+    /**
+     * it is okay to use different CS pins
+     * while keeping CLK and DATA the same,
+     * as long as only one interface is active at a time.
+     */
+
+    std::mutex csMutex;
+    std::vector<uint8_t> csPins;
+    bool beenInitializedInternally = false;
+}
 
 PigpioInterface::PigpioInterface(uint8_t cs, uint8_t clk, uint8_t data, bool initialize): initialize(initialize), csPin(cs), clkPin(clk), dataPin(data) {
     std::lock_guard<std::mutex> lock(csMutex);
@@ -116,3 +125,5 @@ bool PigpioInterface::inputData() {
     return val;
 }
 #endif // TARGET_RPI
+
+} // namespace pt6964
