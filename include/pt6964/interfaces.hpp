@@ -12,6 +12,7 @@
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
     #define PT6964_ERROR(msg) throw std::invalid_argument(msg)
 #else
+    #include <cstdlib>
     #define PT6964_ERROR(msg) do { (void)(msg); std::abort(); } while(0)
 #endif
 
