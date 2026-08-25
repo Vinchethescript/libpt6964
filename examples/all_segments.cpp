@@ -14,7 +14,7 @@ int main() {
     PigpioInterface iface(cs, clk, data);
 
     // adjust DisplayMode as needed
-    PT6964 driver(iface, DisplayMode::D8S10);
+    PT6964<PigpioInterface> driver(iface, DisplayMode::D8S10);
 
     // light all segments
     MemoryType mem{};
