@@ -6,14 +6,6 @@
 #include <algorithm>
 #include <chrono>
 #include <vector>
-#include <stdexcept>
-
-#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
-    #define PT6964_ERROR(msg) throw std::invalid_argument(msg)
-#else
-    #include <cstdlib>
-    #define PT6964_ERROR(msg) do { (void)(msg); std::abort(); } while(0)
-#endif
 
 namespace pt6964::interface {
     // TODO: tune turnaroundDelayNs to the minimum value that works reliably
@@ -27,19 +19,11 @@ namespace pt6964::interface {
         uint8_t csPin, clkPin, dataPin;
 
         PigpioInterface(uint8_t cs, uint8_t clk, uint8_t data): csPin(cs), clkPin(clk), dataPin(data) {
-            if (cs == INVALID || clk == INVALID || data == INVALID || cs == clk || cs == data || clk == data) {
-                PT6964_ERROR("Invalid pin number.");
-            }
-            if (gpioCfgGetInternals() != PI_INITIALISED) {
-                PT6964_ERROR("pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
-            }
+            PT6964_ASSERT(cs != INVALID && clk != INVALID && data != INVALID && cs != clk && cs != data && clk != data, "Invalid pin number.");
+            PT6964_ASSERT(gpioCfgGetInternals() == PI_INITIALISED, "pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
 
             // we don't set the DATA pin mode here, because it will be switched between input and output as needed
-            if (gpioSetMode(csPin, PI_OUTPUT) != 0 ||
-                gpioSetMode(clkPin, PI_OUTPUT) != 0
-            ) {
-                PT6964_ERROR("Failed to set pin modes");
-            }
+            PT6964_ASSERT(gpioSetMode(csPin, PI_OUTPUT) == 0 && gpioSetMode(clkPin, PI_OUTPUT) == 0, "Failed to set pin modes");
         }
 
         PigpioInterface(const PigpioInterface&) = delete;
@@ -77,9 +61,7 @@ namespace pt6964::interface {
 
         void setData(bool high) {
             if (dataPinMode != 1) {
-                if (gpioSetMode(dataPin, PI_OUTPUT) != 0) {
-                    PT6964_ERROR("Failed to set DATA pin mode to OUTPUT");
-                }
+                PT6964_ASSERT(gpioSetMode(dataPin, PI_OUTPUT) == 0, "Failed to set DATA pin mode to OUTPUT");
                 dataPinMode = 1;
                 this->delay(turnaroundDelayNs);
             }
@@ -88,9 +70,7 @@ namespace pt6964::interface {
 
         bool inputData() {
             if (dataPinMode != 2) {
-                if (gpioSetMode(dataPin, PI_INPUT) != 0) {
-                    PT6964_ERROR("Failed to set DATA pin mode to INPUT");
-                }
+                PT6964_ASSERT(gpioSetMode(dataPin, PI_INPUT) == 0, "Failed to set DATA pin mode to INPUT");
                 dataPinMode = 2;
                 this->delay(turnaroundDelayNs);
             }
@@ -114,7 +94,5 @@ namespace pt6964::interface {
         }
     };
 }
-
-#undef PT6964_ERROR
 
 #endif // TARGET_RPI

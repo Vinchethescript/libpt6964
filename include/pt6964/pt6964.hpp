@@ -13,6 +13,16 @@
     #include <concepts>
 #endif
 
+
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+    #include <stdexcept>
+    #define PT6964_ASSERT(cond, msg) do { if (!(cond)) { throw std::invalid_argument(msg); } } while(0)
+#else
+    #include <cstdlib>
+    #define PT6964_ASSERT(cond, msg) do { if (!(cond)) { (void)(msg); std::abort(); } } while(0)
+#endif
+
+
 namespace pt6964 {
 
 #if __cplusplus >= 202002L
@@ -126,7 +136,7 @@ public:
      * @param force Whether to force the command to be sent even if the state hasn't changed. Default: false
      */
     void setBrightness(bool on, uint8_t brightness, bool force = false) {
-        brightness = std::min(brightness, MAX_BRIGHTNESS);
+        PT6964_ASSERT(brightness <= MAX_BRIGHTNESS, "Brightness out of range.");
 
         doSetBrightness(on, brightness, force);
     }
@@ -149,7 +159,8 @@ public:
         force = force || first;
 
         bool disp = display_on.value_or(lastDisp.value_or(true));
-        uint8_t bright = std::min(brightness.value_or(lastBrightness.value_or(4)), MAX_BRIGHTNESS);
+        uint8_t bright = brightness.value_or(lastBrightness.value_or(4));
+        PT6964_ASSERT(bright <= MAX_BRIGHTNESS, "Brightness out of range.");
 
         // If nothing has changed, then do not rewrite.
         if (!force && lastMsgSet &&
@@ -227,7 +238,7 @@ public:
     
     void sendCommand(Command command, uint8_t data) {
         uint8_t cmd = static_cast<uint8_t>(command);
-        data &= 0b00111111;
+        PT6964_ASSERT(data <= 0b00111111, "Data too large.");
         sendRawCommand(cmd | data);
     }
 
@@ -275,6 +286,7 @@ public:
     }
 };
 
-#undef PT6964_INTERFACE_CONCEPT
-
 } // namespace pt6964
+
+#undef PT6964_INTERFACE_CONCEPT
+#undef PT6964_ASSERT
