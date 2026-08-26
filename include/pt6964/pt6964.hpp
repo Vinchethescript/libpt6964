@@ -92,6 +92,8 @@ namespace detail {
  *           otherwise a dummy mutex that does nothing.
  *           You can also provide your own mutex type
  *           that implements lock() and unlock() methods.
+ *           The mutex ensures that multiple PT6964 instances using
+ *           the same HardwareInterface do not interfere with each other.
  * 
  * Instance parameters:
  * - iface: HardwareInterface instance to use for communication.
@@ -165,7 +167,7 @@ public:
         brightness = std::min(brightness, MAX_BRIGHTNESS);
 
         #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(mtx);
+        std::lock_guard<MutexT> lock(this->mtx);
         #endif
 
         doSetBrightness(on, brightness, force);
@@ -177,7 +179,7 @@ public:
         bool force = false)
     {
         #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(mtx);
+        std::lock_guard<MutexT> lock(this->mtx);
         #endif
         
         // If we haven't written anything yet, we're still forcing
@@ -265,7 +267,7 @@ public:
         data &= 0b00111111;
         
         #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(mtx);
+        std::lock_guard<MutexT> lock(this->mtx);
         #endif
 
         sendRawCommand(cmd | data);
@@ -275,7 +277,7 @@ public:
         uint16_t data = 0;
 
         #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(mtx);
+        std::lock_guard<MutexT> lock(this->mtx);
         #endif
 
         rwMode = RWMode::READ;
@@ -305,13 +307,13 @@ public:
     }
 
     void setTestMode(bool test) {
+        #if PT6964_USE_MUTEX
+        std::lock_guard<MutexT> lock(this->mtx);
+        #endif
+
         if (testMode == test) {
             return;
         }
-
-        #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(mtx);
-        #endif
 
         testMode = test;
         rwMode = RWMode::NONE; // send on the next write/read

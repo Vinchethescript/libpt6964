@@ -93,9 +93,7 @@ namespace pt6964::interface {
 
         PigpioInterface& operator=(PigpioInterface&& other) noexcept {
             if (this != &other) {
-                #if PT6964_USE_MUTEX && __has_include(<mutex>)
                 cleanup(); 
-                #endif
                 
                 dataPinMode = other.dataPinMode;
                 csPin = other.csPin;
@@ -109,9 +107,7 @@ namespace pt6964::interface {
         }
 
         ~PigpioInterface() {
-            #if PT6964_USE_MUTEX && __has_include(<mutex>)
             cleanup();
-            #endif
         }
 
         void setCS(bool high) {
