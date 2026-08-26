@@ -23,12 +23,6 @@ namespace pt6964::interface {
         static constexpr uint8_t INVALID = 255;
         uint8_t dataPinMode = 0;
 
-        void cleanup() {
-            if (csPin != INVALID) {
-                csPin = INVALID;
-            }
-        }
-
     public:
         uint8_t csPin, clkPin, dataPin;
 
@@ -56,7 +50,7 @@ namespace pt6964::interface {
 
         PigpioInterface& operator=(PigpioInterface&& other) noexcept {
             if (this != &other) {
-                cleanup(); 
+                csPin = INVALID;
                 
                 dataPinMode = other.dataPinMode;
                 csPin = other.csPin;
@@ -70,7 +64,7 @@ namespace pt6964::interface {
         }
 
         ~PigpioInterface() {
-            cleanup();
+            csPin = INVALID;
         }
 
         void setCS(bool high) {

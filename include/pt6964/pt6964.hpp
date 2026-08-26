@@ -233,7 +233,7 @@ public:
 
     [[nodiscard]] uint16_t readKey() {
         uint16_t data = 0;
-s
+
         /** 
          * NOTE: I didn't test if I have to always
          *       send the ACTION command before reading;
