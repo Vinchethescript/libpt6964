@@ -69,10 +69,24 @@ namespace utils {
     #endif
 #endif
 
-/** clkDelayNs:
- * Delay in nanoseconds between each CLK high and low.
- * This is a little more than the minimum the chip
- * can handle according to the datasheet (400ns).
+/**
+ * Main PT6964 IC driver class.
+ * Template parameters:
+ * - HardwareInterface: IC communication implementation class.
+ * - clkDelayNs: Delay in nanoseconds between each CLK high and low [see below].
+ *               The PT6964 datasheet specifies a minimum of
+ *               400ns between each CLK high and low. The library
+ *               defaults to 500ns, which is a little more, but
+ *               you can tune it to whichever value that works reliably for your setup.
+ * - MutexT: Mutex type to use for thread safety.
+ *           Defaults to std::mutex if available,
+ *           otherwise a dummy mutex that does nothing.
+ *           You can also provide your own mutex type
+ *           that implements lock() and unlock() methods.
+ * 
+ * Instance parameters:
+ * - iface: HardwareInterface instance to use for communication.
+ * - mode: DisplayMode to use for the PT6964 IC [see DisplayMode enum].
  */
 template<PT6964_INTERFACE_CONCEPT InterfaceT, unsigned int clkDelayNs = 500, typename MutexT = PT6964_MUTEX>
 class PT6964 {
@@ -83,7 +97,7 @@ private:
     std::optional<bool> lastDisp;
 
     #if PT6964_USE_MUTEX
-    MutexT mtx;
+    inline static MutexT mtx;
     #endif
 
     bool first = true;

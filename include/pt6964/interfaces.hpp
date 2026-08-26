@@ -33,7 +33,6 @@ namespace pt6964::interface {
          *       inside that one instance itself.
          */
 
-        inline std::mutex csMutex;
         inline std::vector<uint8_t> csPins;
     }
 
@@ -46,7 +45,6 @@ namespace pt6964::interface {
 
         void cleanup() {
             if (csPin != INVALID) {
-                std::lock_guard<std::mutex> lock(detail::csMutex);
                 detail::csPins.erase(std::remove(detail::csPins.begin(), detail::csPins.end(), csPin), detail::csPins.end());
                 csPin = INVALID;
             }
@@ -59,7 +57,6 @@ namespace pt6964::interface {
             if (cs == INVALID || clk == INVALID || data == INVALID || cs == clk || cs == data || clk == data) {
                 PT6964_ERROR("Invalid pin number.");
             }
-            std::lock_guard<std::mutex> lock(detail::csMutex);
             if (gpioCfgGetInternals() != PI_INITIALISED) {
                 PT6964_ERROR("pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
             }
