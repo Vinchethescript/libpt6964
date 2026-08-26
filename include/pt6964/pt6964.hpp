@@ -69,6 +69,15 @@ namespace utils {
     #endif
 #endif
 
+namespace detail {
+    template<PT6964_INTERFACE_CONCEPT InterfaceT, typename MutexT = PT6964_MUTEX>
+    class PT6964Base {
+    protected:
+        #if PT6964_USE_MUTEX
+        inline static MutexT mtx;
+        #endif
+    };
+}
 /**
  * Main PT6964 IC driver class.
  * Template parameters:
@@ -89,16 +98,12 @@ namespace utils {
  * - mode: DisplayMode to use for the PT6964 IC [see DisplayMode enum].
  */
 template<PT6964_INTERFACE_CONCEPT InterfaceT, unsigned int clkDelayNs = 500, typename MutexT = PT6964_MUTEX>
-class PT6964 {
+class PT6964: public detail::PT6964Base<InterfaceT, MutexT> {
 private:
     MemoryType lastAddr = {0};
     bool lastMsgSet = false;
     std::optional<uint8_t> lastBrightness;
     std::optional<bool> lastDisp;
-
-    #if PT6964_USE_MUTEX
-    inline static MutexT mtx;
-    #endif
 
     bool first = true;
     DisplayMode mode;
