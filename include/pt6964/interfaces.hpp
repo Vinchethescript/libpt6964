@@ -3,7 +3,11 @@
 #if defined(TARGET_RPI)
 #include <cstdint>
 #include <pigpio.h>
-#include <mutex>
+
+#if PT6964_USE_MUTEX && __has_include(<mutex>)
+    #include <mutex>
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <vector>
@@ -27,7 +31,11 @@ namespace pt6964::interface {
          * chips coming from the same interface don't interfere with each other.
          */
 
-        inline std::vector<uint8_t> csPins;
+        #if PT6964_USE_MUTEX && __has_include(<mutex>)
+        inline std::mutex csMutex;
+        inline std::vector<uint8_t> csPins; // if no mutex then why keep pins?
+        #endif
+
     }
 
     // TODO: tune turnaroundDelayNs to the minimum value that works reliably
@@ -37,12 +45,16 @@ namespace pt6964::interface {
         static constexpr uint8_t INVALID = 255;
         uint8_t dataPinMode = 0;
 
+        #if PT6964_USE_MUTEX && __has_include(<mutex>)
         void cleanup() {
             if (csPin != INVALID) {
+                std::lock_guard<std::mutex> lock(detail::csMutex);
+
                 detail::csPins.erase(std::remove(detail::csPins.begin(), detail::csPins.end(), csPin), detail::csPins.end());
                 csPin = INVALID;
             }
         }
+        #endif
 
     public:
         uint8_t csPin, clkPin, dataPin;
@@ -64,7 +76,10 @@ namespace pt6964::interface {
             ) {
                 PT6964_ERROR("Failed to set pin modes");
             }
+            #if PT6964_USE_MUTEX && __has_include(<mutex>)
+            std::lock_guard<std::mutex> lock(detail::csMutex);
             detail::csPins.push_back(cs);
+            #endif
         }
 
         PigpioInterface(const PigpioInterface&) = delete;
@@ -75,7 +90,9 @@ namespace pt6964::interface {
 
         PigpioInterface& operator=(PigpioInterface&& other) noexcept {
             if (this != &other) {
+                #if PT6964_USE_MUTEX && __has_include(<mutex>)
                 cleanup(); 
+                #endif
                 
                 dataPinMode = other.dataPinMode;
                 csPin = other.csPin;
@@ -88,9 +105,11 @@ namespace pt6964::interface {
             return *this;
         }
 
+        #if PT6964_USE_MUTEX && __has_include(<mutex>)
         ~PigpioInterface() {
             cleanup();
         }
+        #endif
 
         void setCS(bool high) {
             gpioWrite(csPin, high ? PI_HIGH : PI_LOW);

@@ -16,7 +16,7 @@ namespace pt6964 {
         D4S13 = 0b00, // 4 digits, 13 segments
         D5S12 = 0b01, // 5 digits, 12 segments
         D6S11 = 0b10, // 6 digits, 11 segments
-        D8S10 = 0b11  // 8 digits, 10 segments
+        D7S10 = 0b11  // 7 digits, 10 segments
     };
 
     enum class Command: uint8_t {

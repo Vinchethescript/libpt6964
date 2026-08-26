@@ -18,7 +18,7 @@ int main() {
     PigpioInterface iface(cs, clk, data);
 
     // adjust DisplayMode as needed
-    PT6964 driver(iface, DisplayMode::D8S10);
+    PT6964 driver(iface, DisplayMode::D7S10);
 
     /**
      * each byte is one address in the PT6964 RAM (14 bytes total).
