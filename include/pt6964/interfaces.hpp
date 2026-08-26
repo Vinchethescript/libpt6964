@@ -23,14 +23,8 @@ namespace pt6964::interface {
          * it is okay to use different CS pins
          * while keeping CLK and DATA the same,
          * as long as only one interface is active at a time.
-         * 
-         * NOTE: as of now, this is broken.
-         *       You have to keep separate CLK
-         *       and DATA pins for each interface
-         *       because there's no global mutex
-         *       for the PT6964 class. The only
-         *       available mutex only protects
-         *       inside that one instance itself.
+         * The static mutex in the main class makes sure that
+         * chips coming from the same interface don't interfere with each other.
          */
 
         inline std::vector<uint8_t> csPins;
