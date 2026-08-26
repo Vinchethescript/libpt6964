@@ -3,11 +3,6 @@
 #if defined(TARGET_RPI)
 #include <cstdint>
 #include <pigpio.h>
-
-#if PT6964_USE_MUTEX && __has_include(<mutex>)
-    #include <mutex>
-#endif
-
 #include <algorithm>
 #include <chrono>
 #include <vector>
@@ -21,23 +16,6 @@
 #endif
 
 namespace pt6964::interface {
-
-    namespace detail {
-        /**
-         * it is okay to use different CS pins
-         * while keeping CLK and DATA the same,
-         * as long as only one interface is active at a time.
-         * The static mutex in the main class makes sure that
-         * chips coming from the same interface don't interfere with each other.
-         */
-
-        #if PT6964_USE_MUTEX && __has_include(<mutex>)
-        inline std::mutex csMutex;
-        inline std::vector<uint8_t> csPins; // if no mutex then why keep pins?
-        #endif
-
-    }
-
     // TODO: tune turnaroundDelayNs to the minimum value that works reliably
     template<unsigned int turnaroundDelayNs = 500>
     class PigpioInterface {
@@ -47,11 +25,6 @@ namespace pt6964::interface {
 
         void cleanup() {
             if (csPin != INVALID) {
-                #if PT6964_USE_MUTEX && __has_include(<mutex>)
-                std::lock_guard<std::mutex> lock(detail::csMutex);
-
-                detail::csPins.erase(std::remove(detail::csPins.begin(), detail::csPins.end(), csPin), detail::csPins.end());
-                #endif
                 csPin = INVALID;
             }
         }
@@ -67,23 +40,12 @@ namespace pt6964::interface {
                 PT6964_ERROR("pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
             }
 
-            #if PT6964_USE_MUTEX && __has_include(<mutex>)
-            std::lock_guard<std::mutex> lock(detail::csMutex);
-
-            if (std::find(detail::csPins.begin(), detail::csPins.end(), cs) != detail::csPins.end()) {
-                PT6964_ERROR("CS pin already in use by another PigpioInterface instance");
-            }
-            #endif
-            
             // we don't set the DATA pin mode here, because it will be switched between input and output as needed
             if (gpioSetMode(csPin, PI_OUTPUT) != 0 ||
                 gpioSetMode(clkPin, PI_OUTPUT) != 0
             ) {
                 PT6964_ERROR("Failed to set pin modes");
             }
-            #if PT6964_USE_MUTEX && __has_include(<mutex>)
-            detail::csPins.push_back(cs);
-            #endif
         }
 
         PigpioInterface(const PigpioInterface&) = delete;

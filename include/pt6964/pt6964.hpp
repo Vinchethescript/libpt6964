@@ -1,23 +1,11 @@
 #pragma once
 
-#if !defined(PT6964_USE_MUTEX)
-    #if defined(__STDCPP_THREADS__)
-        #define PT6964_USE_MUTEX 1
-    #else
-        #define PT6964_USE_MUTEX 0
-    #endif
-#endif
-
 #include <cstdint>
 #include <array>
 #include <optional>
 #include <algorithm>
-
-#if PT6964_USE_MUTEX && __has_include(<mutex>)
-    #include <mutex>
-#endif
-
 #include <stdexcept>
+
 #include "interfaces.hpp"
 #include "defs.hpp"
 
@@ -54,54 +42,21 @@ namespace utils {
     [[nodiscard]] inline constexpr uint8_t getMode(DisplayMode mode) {
         return static_cast<uint8_t>(Command::MODE) | static_cast<uint8_t>(mode);
     }
-
-    struct DummyMutex {
-        void lock() {}
-        void unlock() {}
-    };
-}
-
-#if !defined(PT6964_MUTEX)
-    #if PT6964_USE_MUTEX && __has_include(<mutex>)
-        #define PT6964_MUTEX std::mutex
-    #else
-        #define PT6964_MUTEX utils::DummyMutex
-    #endif
-#endif
-
-namespace detail {
-    template<PT6964_INTERFACE_CONCEPT InterfaceT, typename MutexT = PT6964_MUTEX>
-    class PT6964Base {
-    protected:
-        #if PT6964_USE_MUTEX
-        inline static MutexT mtx;
-        #endif
-    };
 }
 /**
  * Main PT6964 IC driver class.
- * Template parameters:
- * - HardwareInterface: IC communication implementation class.
- * - clkDelayNs: Delay in nanoseconds between each CLK high and low [see below].
- *               The PT6964 datasheet specifies a minimum of
- *               400ns between each CLK high and low. The library
- *               defaults to 500ns, which is a little more, but
- *               you can tune it to whichever value that works reliably for your setup.
- * - MutexT: Mutex type to use for thread safety.
- *           Defaults to std::mutex if available,
- *           otherwise a dummy mutex that does nothing.
- *           You can also provide your own mutex type
- *           that implements lock() and unlock() methods.
- *           The mutex ensures that multiple PT6964 instances using
- *           different instances of the same HardwareInterface
- *           do not interfere with each other.
+ * @param HardwareInterface IC communication implementation class.
+ * @param clkDelayNs Delay in nanoseconds between each CLK high and low [see below].
+ *                   The PT6964 datasheet specifies a minimum of
+ *                   400ns between each CLK high and low. The library
+ *                   defaults to 500ns, which is a little more, but
+ *                   you can tune it to whichever value that works reliably for your setup.
  * 
- * Instance parameters:
- * - iface: HardwareInterface instance to use for communication.
- * - mode: DisplayMode to use for the PT6964 IC [see DisplayMode enum].
+ * @param iface HardwareInterface instance to use for communication.
+ * @param mode DisplayMode to use for the PT6964 IC [see DisplayMode enum].
  */
-template<PT6964_INTERFACE_CONCEPT InterfaceT, unsigned int clkDelayNs = 500, typename MutexT = PT6964_MUTEX>
-class PT6964: public detail::PT6964Base<InterfaceT, MutexT> {
+template<PT6964_INTERFACE_CONCEPT InterfaceT, unsigned int clkDelayNs = 500>
+class PT6964 {
 private:
     MemoryType lastAddr = {0};
     bool lastMsgSet = false;
@@ -164,25 +119,32 @@ public:
     PT6964(PT6964&&) = delete;
     PT6964& operator=(PT6964&&) = delete;
 
+    /**
+     * Toggle the display on/off and set the brightness.
+     * @param on true to turn the display on, false to turn it off.
+     * @param brightness Brightness level (0-7). 0 is dimmest (not off), 7 is brightest.
+     * @param force Whether to force the command to be sent even if the state hasn't changed. Default: false
+     */
     void setBrightness(bool on, uint8_t brightness, bool force = false) {
         brightness = std::min(brightness, MAX_BRIGHTNESS);
-
-        #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(this->mtx);
-        #endif
 
         doSetBrightness(on, brightness, force);
     }
 
-    bool writeMessage(const MemoryType& addr,
+    
+    /**
+     * Write to the PT6964's display memory.
+     * @param mem MemoryType array containing the bytes to write.
+     * @param display_on Optional boolean to control display state.
+     * @param brightness Optional brightness level (0-7).
+     * @param force Whether to perform the actions even if nothing has changed. Default: false
+     * @return true if the message was written, false otherwise.
+     */
+    bool writeMessage(const MemoryType& mem,
         std::optional<bool> display_on = std::nullopt,
         std::optional<uint8_t> brightness = std::nullopt,
         bool force = false)
-    {
-        #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(this->mtx);
-        #endif
-        
+    {   
         // If we haven't written anything yet, we're still forcing
         force = force || first;
 
@@ -191,7 +153,7 @@ public:
 
         // If nothing has changed, then do not rewrite.
         if (!force && lastMsgSet &&
-            (addr == lastAddr) &&
+            (mem == lastAddr) &&
             (lastBrightness.has_value() && lastBrightness.value() == bright) &&
             (lastDisp.has_value() && lastDisp.value() == disp))
         {
@@ -213,13 +175,13 @@ public:
             /**
              * NOTE: though the commands are sent LSB first, the
              * actual display data is sent MSB first per byte.
-             * at least, it seems like the IC works that way.
+             * at least, it seems like the IC works that way as tested.
              */
             bool sendClose = true;
             if (force) {
                 interface.setCS(false);
                 sendAddress(0);
-                for (uint8_t row : addr) {
+                for (uint8_t row : mem) {
                     for (int bit = 7; bit >= 0; --bit) {
                         sendBit(row & (1 << bit));
                     }
@@ -228,7 +190,7 @@ public:
                 // only send what effectively changed
                 bool continuing = false;
                 for (size_t i = 0; i < MEMORY_SIZE; ++i) {
-                    if (addr[i] == lastAddr[i]) {
+                    if (mem[i] == lastAddr[i]) {
                         if (continuing) {
                             continuing = false;
                             interface.setCS(true);
@@ -244,7 +206,7 @@ public:
                             sendClose = true;
                         }
                         for (int bit = 7; bit >= 0; --bit) {
-                            sendBit(addr[i] & (1 << bit));
+                            sendBit(mem[i] & (1 << bit));
                         }
                     }
                 }
@@ -256,7 +218,7 @@ public:
                 interface.setCLK(false);
             }
         }
-        lastAddr = addr;
+        lastAddr = mem;
         lastMsgSet = true;
 
         first = false;
@@ -266,21 +228,17 @@ public:
     void sendCommand(Command command, uint8_t data) {
         uint8_t cmd = static_cast<uint8_t>(command);
         data &= 0b00111111;
-        
-        #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(this->mtx);
-        #endif
-
         sendRawCommand(cmd | data);
     }
 
     [[nodiscard]] uint16_t readKey() {
         uint16_t data = 0;
-
-        #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(this->mtx);
-        #endif
-
+s
+        /** 
+         * NOTE: I didn't test if I have to always
+         *       send the ACTION command before reading;
+         *       just making sure it always works for now.
+         */
         rwMode = RWMode::READ;
         interface.setCS(false);
 
@@ -308,16 +266,12 @@ public:
     }
 
     void setTestMode(bool test) {
-        #if PT6964_USE_MUTEX
-        std::lock_guard<MutexT> lock(this->mtx);
-        #endif
-
         if (testMode == test) {
             return;
         }
 
         testMode = test;
-        rwMode = RWMode::NONE; // send on the next write/read
+        rwMode = RWMode::NONE; // send on the next read/possibly write
     }
 };
 
