@@ -141,11 +141,9 @@ private:
     }
 
     RWMode rwMode = RWMode::NONE;
+    bool testMode = false;
 public:
     InterfaceT& interface;
-
-    // if this value changes, it gets sent to the IC on the next writeMessage/readKey call
-    bool testMode = false;
 
     PT6964(InterfaceT& iface, DisplayMode mode = DisplayMode::D7S10): interface(iface), mode(mode) {
         interface.setCS(true);
@@ -297,6 +295,18 @@ public:
         return data;
     }
     
+    bool getTestMode() const {
+        return testMode;
+    }
+
+    void setTestMode(bool test) {
+        #if PT6964_USE_MUTEX
+        std::lock_guard<MutexT> lock(mtx);
+        #endif
+
+        testMode = test;
+        rwMode = RWMode::NONE; // send on the next write/read
+    }
 };
 
 #undef PT6964_INTERFACE_CONCEPT
