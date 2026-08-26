@@ -9,11 +9,14 @@ namespace pt6964 {
     inline constexpr size_t MEMORY_SIZE = 14; // bytes
     inline constexpr uint8_t MAX_BRIGHTNESS = 7; // 3 bits full
 
+    /**
+     * Valid display mode values (last two bits of the MODE command as of the datasheet).
+     */
     enum class DisplayMode: uint8_t {
-        D4S13 = 0b00,
-        D5S12 = 0b01,
-        D6S11 = 0b10,
-        D8S10 = 0b11
+        D4S13 = 0b00, // 4 digits, 13 segments
+        D5S12 = 0b01, // 5 digits, 12 segments
+        D6S11 = 0b10, // 6 digits, 11 segments
+        D8S10 = 0b11  // 8 digits, 10 segments
     };
 
     enum class Command: uint8_t {
@@ -21,12 +24,7 @@ namespace pt6964 {
         OFF  = 0b10000000, // Display off. Brightness bits will be ignored.
 
         /**
-         * Display mode settings. According to the IC datasheet, the last two bits are:
-         * 00: 4 digits, 13 segments;
-         * 01: 5 digits, 12 segments;
-         * 10: 6 digits, 11 segments;
-         * 11: 8 digits, 10 segments.
-         * See also the DisplayMode enum and the getMode function.
+         * Display mode settings. See also the DisplayMode enum and the getMode function.
          */
         MODE = 0b00000000,
 

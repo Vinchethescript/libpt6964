@@ -55,7 +55,6 @@ namespace pt6964::interface {
     public:
         uint8_t csPin, clkPin, dataPin;
 
-        // pass false if pigpio is already initialized elsewhere or you need it with more control/pins
         PigpioInterface(uint8_t cs, uint8_t clk, uint8_t data): csPin(cs), clkPin(clk), dataPin(data) {
             if (cs == INVALID || clk == INVALID || data == INVALID || cs == clk || cs == data || clk == data) {
                 PT6964_ERROR("Invalid pin number.");

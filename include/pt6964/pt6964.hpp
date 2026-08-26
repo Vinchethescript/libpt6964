@@ -181,8 +181,8 @@ public:
 
         if (force || rwMode != RWMode::WRITE) {
             // Write initialization commands.
-            sendRawCommand(getAction(true, true, testMode));
-            sendRawCommand(getMode(this->mode));
+            sendRawCommand(utils::getAction(true, true, testMode));
+            sendRawCommand(utils::getMode(this->mode));
 
             rwMode = RWMode::WRITE;
         }
@@ -264,7 +264,7 @@ public:
         rwMode = RWMode::READ;
         interface.setCS(false);
 
-        sendByte(getAction(false, true, testMode));
+        sendByte(utils::getAction(false, true, testMode));
 
         // as per datasheet, wait at least 1us before reading
         interface.delay(1000);
