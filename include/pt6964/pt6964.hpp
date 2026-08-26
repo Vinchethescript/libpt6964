@@ -68,7 +68,7 @@ namespace utils {
 template<PT6964_INTERFACE_CONCEPT InterfaceT, unsigned int clkDelayNs = 500>
 class PT6964 {
 private:
-    MemoryType lastAddr = {0};
+    MemoryType lastMem = {0};
     bool lastMsgSet = false;
     std::optional<uint8_t> lastBrightness;
     std::optional<bool> lastDisp;
@@ -164,7 +164,7 @@ public:
 
         // If nothing has changed, then do not rewrite.
         if (!force && lastMsgSet &&
-            (mem == lastAddr) &&
+            (mem == lastMem) &&
             (lastBrightness.has_value() && lastBrightness.value() == bright) &&
             (lastDisp.has_value() && lastDisp.value() == disp))
         {
@@ -201,7 +201,7 @@ public:
                 // only send what effectively changed
                 bool continuing = false;
                 for (size_t i = 0; i < MEMORY_SIZE; ++i) {
-                    if (mem[i] == lastAddr[i]) {
+                    if (mem[i] == lastMem[i]) {
                         if (continuing) {
                             continuing = false;
                             interface.setCS(true);
@@ -229,7 +229,7 @@ public:
                 interface.setCLK(false);
             }
         }
-        lastAddr = mem;
+        lastMem = mem;
         lastMsgSet = true;
 
         first = false;
@@ -238,7 +238,7 @@ public:
     
     void sendCommand(Command command, uint8_t data) {
         uint8_t cmd = static_cast<uint8_t>(command);
-        PT6964_ASSERT(data <= 0b00111111, "Data too large.");
+        PT6964_ASSERT(data <= 63, "Data too large.");
         sendRawCommand(cmd | data);
     }
 
