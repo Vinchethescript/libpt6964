@@ -69,11 +69,12 @@ namespace pt6964::interface {
 
             #if PT6964_USE_MUTEX && __has_include(<mutex>)
             std::lock_guard<std::mutex> lock(detail::csMutex);
-            #endif
 
             if (std::find(detail::csPins.begin(), detail::csPins.end(), cs) != detail::csPins.end()) {
                 PT6964_ERROR("CS pin already in use by another PigpioInterface instance");
             }
+            #endif
+            
             // we don't set the DATA pin mode here, because it will be switched between input and output as needed
             if (gpioSetMode(csPin, PI_OUTPUT) != 0 ||
                 gpioSetMode(clkPin, PI_OUTPUT) != 0

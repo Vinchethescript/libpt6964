@@ -93,7 +93,8 @@ namespace detail {
  *           You can also provide your own mutex type
  *           that implements lock() and unlock() methods.
  *           The mutex ensures that multiple PT6964 instances using
- *           the same HardwareInterface do not interfere with each other.
+ *           different instances of the same HardwareInterface
+ *           do not interfere with each other.
  * 
  * Instance parameters:
  * - iface: HardwareInterface instance to use for communication.
