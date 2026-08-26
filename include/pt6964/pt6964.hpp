@@ -300,6 +300,10 @@ public:
     }
 
     void setTestMode(bool test) {
+        if (testMode == test) {
+            return;
+        }
+
         #if PT6964_USE_MUTEX
         std::lock_guard<MutexT> lock(mtx);
         #endif
