@@ -147,7 +147,7 @@ public:
     // if this value changes, it gets sent to the IC on the next writeMessage/readKey call
     bool testMode = false;
 
-    PT6964(InterfaceT& iface, DisplayMode mode = DisplayMode::D8S10): interface(iface), mode(mode) {
+    PT6964(InterfaceT& iface, DisplayMode mode = DisplayMode::D7S10): interface(iface), mode(mode) {
         interface.setCS(true);
         interface.setCLK(false);
         interface.setData(false);

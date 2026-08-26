@@ -45,16 +45,16 @@ namespace pt6964::interface {
         static constexpr uint8_t INVALID = 255;
         uint8_t dataPinMode = 0;
 
-        #if PT6964_USE_MUTEX && __has_include(<mutex>)
         void cleanup() {
             if (csPin != INVALID) {
+                #if PT6964_USE_MUTEX && __has_include(<mutex>)
                 std::lock_guard<std::mutex> lock(detail::csMutex);
 
                 detail::csPins.erase(std::remove(detail::csPins.begin(), detail::csPins.end(), csPin), detail::csPins.end());
+                #endif
                 csPin = INVALID;
             }
         }
-        #endif
 
     public:
         uint8_t csPin, clkPin, dataPin;
@@ -66,18 +66,18 @@ namespace pt6964::interface {
             if (gpioCfgGetInternals() != PI_INITIALISED) {
                 PT6964_ERROR("pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
             }
+
+            #if PT6964_USE_MUTEX && __has_include(<mutex>)
+            std::lock_guard<std::mutex> lock(detail::csMutex);
             if (std::find(detail::csPins.begin(), detail::csPins.end(), cs) != detail::csPins.end()) {
                 PT6964_ERROR("CS pin already in use by another PigpioInterface instance");
             }
-
             // we don't set the DATA pin mode here, because it will be switched between input and output as needed
             if (gpioSetMode(csPin, PI_OUTPUT) != 0 ||
                 gpioSetMode(clkPin, PI_OUTPUT) != 0
             ) {
                 PT6964_ERROR("Failed to set pin modes");
             }
-            #if PT6964_USE_MUTEX && __has_include(<mutex>)
-            std::lock_guard<std::mutex> lock(detail::csMutex);
             detail::csPins.push_back(cs);
             #endif
         }
@@ -105,11 +105,11 @@ namespace pt6964::interface {
             return *this;
         }
 
-        #if PT6964_USE_MUTEX && __has_include(<mutex>)
         ~PigpioInterface() {
+            #if PT6964_USE_MUTEX && __has_include(<mutex>)
             cleanup();
+            #endif
         }
-        #endif
 
         void setCS(bool high) {
             gpioWrite(csPin, high ? PI_HIGH : PI_LOW);
