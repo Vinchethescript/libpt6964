@@ -10,4 +10,4 @@ if(PT6964_ENABLE_PIGPIO)
     find_dependency(pigpio)
 endif()
 
-include("${CMAKE_CURRENT_LIST_DIR}/pt6964_targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/pt6964Targets.cmake")
