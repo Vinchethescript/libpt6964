@@ -8,14 +8,15 @@
 
 namespace pt6964::interface {
     // TODO: tune turnaroundDelayNs to the minimum value that works reliably
-    template<unsigned int turnaroundDelayNs = 500>
-    class PigpioInterface {
+    inline constexpr unsigned int DEFAULT_TURNAROUND_DELAY_NS = 500;
+    template<unsigned int turnaroundDelayNs = DEFAULT_TURNAROUND_DELAY_NS>
+    class RealPigpioInterface {
     private:
         uint8_t dataPinMode = 0;
     public:
         const uint8_t csPin, clkPin, dataPin;
 
-        PigpioInterface(uint8_t cs, uint8_t clk, uint8_t data): csPin(cs), clkPin(clk), dataPin(data) {
+        RealPigpioInterface(uint8_t cs, uint8_t clk, uint8_t data): csPin(cs), clkPin(clk), dataPin(data) {
             PT6964_ASSERT(cs != clk && cs != data && clk != data, "Invalid pin number.");
             PT6964_ASSERT(gpioCfgGetInternals() == PI_INITIALISED, "pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
 
@@ -23,8 +24,8 @@ namespace pt6964::interface {
             PT6964_ASSERT(gpioSetMode(csPin, PI_OUTPUT) == 0 && gpioSetMode(clkPin, PI_OUTPUT) == 0, "Failed to set pin modes");
         }
 
-        PigpioInterface(const PigpioInterface&) = delete;
-        PigpioInterface& operator=(const PigpioInterface&) = delete;
+        RealPigpioInterface(const RealPigpioInterface&) = delete;
+        RealPigpioInterface& operator=(const RealPigpioInterface&) = delete;
 
         void setCS(bool high) {
             gpioWrite(csPin, high ? PI_HIGH : PI_LOW);
@@ -68,4 +69,6 @@ namespace pt6964::interface {
             } else gpioDelay(nsec / 1000);
         }
     };
+
+    using PigpioInterface = RealPigpioInterface<DEFAULT_TURNAROUND_DELAY_NS>;
 }
