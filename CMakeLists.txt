@@ -17,7 +17,6 @@ target_include_directories(pt6964 INTERFACE
 )
 
 if(ENABLE_PIGPIO)
-    find_package(pigpio REQUIRED)
     target_compile_definitions(pt6964 INTERFACE ENABLE_PIGPIO)
     target_link_libraries(pt6964 INTERFACE pigpio)
 endif()
