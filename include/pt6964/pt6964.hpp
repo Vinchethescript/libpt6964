@@ -6,9 +6,6 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include "interfaces.hpp"
-#include "defs.hpp"
-
 #if __cplusplus >= 202002L
     #include <concepts>
 #endif
@@ -21,6 +18,9 @@
     #include <cstdlib>
     #define PT6964_ASSERT(cond, msg) do { if (!(cond)) { (void)(msg); std::abort(); } } while(0)
 #endif
+
+#include "interfaces.hpp"
+#include "defs.hpp"
 
 
 namespace pt6964 {
