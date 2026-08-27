@@ -11,14 +11,12 @@ namespace pt6964::interface {
     template<unsigned int turnaroundDelayNs = 500>
     class PigpioInterface {
     private:
-        static constexpr uint8_t INVALID = 255;
         uint8_t dataPinMode = 0;
-
     public:
-        uint8_t csPin, clkPin, dataPin;
+        const uint8_t csPin, clkPin, dataPin;
 
         PigpioInterface(uint8_t cs, uint8_t clk, uint8_t data): csPin(cs), clkPin(clk), dataPin(data) {
-            PT6964_ASSERT(cs != INVALID && clk != INVALID && data != INVALID && cs != clk && cs != data && clk != data, "Invalid pin number.");
+            PT6964_ASSERT(cs != clk && cs != data && clk != data, "Invalid pin number.");
             PT6964_ASSERT(gpioCfgGetInternals() == PI_INITIALISED, "pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
 
             // we don't set the DATA pin mode here, because it will be switched between input and output as needed
@@ -27,28 +25,6 @@ namespace pt6964::interface {
 
         PigpioInterface(const PigpioInterface&) = delete;
         PigpioInterface& operator=(const PigpioInterface&) = delete;
-        PigpioInterface(PigpioInterface&& other) noexcept: dataPinMode(other.dataPinMode), csPin(other.csPin), clkPin(other.clkPin), dataPin(other.dataPin) {
-            other.csPin = INVALID;
-        }
-
-        PigpioInterface& operator=(PigpioInterface&& other) noexcept {
-            if (this != &other) {
-                csPin = INVALID;
-                
-                dataPinMode = other.dataPinMode;
-                csPin = other.csPin;
-                clkPin = other.clkPin;
-                dataPin = other.dataPin;
-                
-                other.csPin = INVALID;
-                other.dataPinMode = 0;
-            }
-            return *this;
-        }
-
-        ~PigpioInterface() {
-            csPin = INVALID;
-        }
 
         void setCS(bool high) {
             gpioWrite(csPin, high ? PI_HIGH : PI_LOW);

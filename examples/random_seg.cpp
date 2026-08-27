@@ -1,4 +1,4 @@
-// g++ -std=c++17 -o random_seg{,.cpp} -lpt6964 -lpigpio -lrt -lpthread
+// g++ -std=c++17 -o random_seg{,.cpp} -lpigpio -lrt -lpthread
 #include <iostream>
 #include <bitset>
 #include <thread>
