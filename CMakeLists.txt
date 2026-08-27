@@ -23,7 +23,7 @@ if(ENABLE_PIGPIO)
 endif()
 
 install(TARGETS pt6964
-    EXPORT pt6964_targets
+    EXPORT pt6964Targets
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
@@ -31,26 +31,26 @@ install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(EXPORT pt6964_targets
-    FILE pt6964_targets.cmake
+install(EXPORT pt6964Targets
+    FILE pt6964Targets.cmake
     NAMESPACE pt6964::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pt6964
 )
 
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/pt6964_config_version.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/pt6964ConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/pt6964_config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/pt6964_config.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/pt6964Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/pt6964Config.cmake"
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pt6964
 )
 
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/pt6964_config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/pt6964_config_version.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/pt6964Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/pt6964ConfigVersion.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/pt6964
 )
