@@ -18,7 +18,7 @@ namespace pt6964::interface {
 
         RealPigpioInterface(uint8_t cs, uint8_t clk, uint8_t data): csPin(cs), clkPin(clk), dataPin(data) {
             PT6964_ASSERT(cs != clk && cs != data && clk != data, "Invalid pin number.");
-            PT6964_ASSERT(gpioCfgGetInternals() == PI_INITIALISED, "pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
+            PT6964_ASSERT(gpioGetMode(csPin) != PI_NOT_INITIALISED, "pigpio is not initialized. Please call gpioInitialise() before creating a PigpioInterface instance.");
 
             // we don't set the DATA pin mode here, because it will be switched between input and output as needed
             PT6964_ASSERT(gpioSetMode(csPin, PI_OUTPUT) == 0 && gpioSetMode(clkPin, PI_OUTPUT) == 0, "Failed to set pin modes");
