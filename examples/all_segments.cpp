@@ -1,6 +1,6 @@
-// g++ -std=c++17 -o all_segments{,.cpp} -lpt6964 -lpigpio -lrt -lpthread
+// g++ -std=c++17 -o all_segments{,.cpp} -lpigpio -lrt -lpthread
 #include <iostream>
-#include <pt6964.hpp>
+#include <pt6964/pt6964.hpp>
 
 using namespace pt6964;
 

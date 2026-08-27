@@ -4,7 +4,7 @@
 #include <thread>
 #include <chrono>
 #include <random>
-#include <pt6964.hpp>
+#include <pt6964/pt6964.hpp>
 
 using namespace pt6964;
 
@@ -25,7 +25,7 @@ int main() {
     PigpioInterface iface(cs, clk, data);
 
     // adjust DisplayMode as needed
-    PT6964 driver(iface, DisplayMode::D7S10);
+    PT6964<PigpioInterface> driver(iface, DisplayMode::D7S10);
 
     std::cout << "Press any key..." << std::endl;
     while (true) {
