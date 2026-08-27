@@ -115,9 +115,8 @@ private:
 
     RWMode rwMode = RWMode::NONE;
     bool testMode = false;
-public:
     InterfaceT& interface;
-
+public:
     PT6964(InterfaceT& iface, DisplayMode mode = DisplayMode::D7S10): interface(iface), mode(mode) {
         interface.setCS(true);
         interface.setCLK(false);
