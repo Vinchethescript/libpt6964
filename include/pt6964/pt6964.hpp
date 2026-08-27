@@ -90,7 +90,7 @@ private:
     }
 
     void sendAddress(uint8_t addr) {
-        addr = std::min(addr, static_cast<uint8_t>(MEMORY_SIZE - 1));
+        PT6964_ASSERT(addr < MEMORY_SIZE, "Address out of range.");
         sendByte(static_cast<uint8_t>(Command::ADDR) | addr);
     }
 
@@ -267,6 +267,7 @@ public:
                 data |= (1 << i);
             }
             interface.setCLK(false);
+            interface.delay(clkDelayNs);
         }
         interface.setCS(true);
         return data;
