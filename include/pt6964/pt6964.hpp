@@ -241,8 +241,8 @@ public:
         sendRawCommand(cmd | data);
     }
 
-    [[nodiscard]] uint16_t readKey() {
-        uint16_t data = 0;
+    [[nodiscard]] uint32_t readKey() {
+        uint32_t data = 0;
 
         /** 
          * NOTE: I didn't test if I have to always
@@ -257,7 +257,7 @@ public:
         // as per datasheet, wait at least 1us before reading
         interface.delay(1000);
 
-        for (int i = 0; i < 16; ++i) {
+        for (int i = 0; i < 24; ++i) {
             interface.setCLK(true);
             interface.delay(clkDelayNs); // wait for the chip to update the DATA line
 
